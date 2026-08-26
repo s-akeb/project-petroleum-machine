@@ -54,7 +54,13 @@ userModel.seedDefaultAdmin = async () => {
             userType: 'ADMIN',
         });
         if (matchingAdmin) {
-            console.log('Default admin already exists.');
+            if (matchingAdmin.mobileNumber !== config.admin.mobileNumber) {
+                matchingAdmin.mobileNumber = config.admin.mobileNumber;
+                await matchingAdmin.save();
+                console.log(`Default admin mobile updated to ${config.admin.mobileNumber}.`);
+            } else {
+                console.log('Default admin already exists.');
+            }
             return;
         }
 
