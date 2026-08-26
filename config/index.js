@@ -18,7 +18,7 @@ module.exports = {
         firstName: process.env.DEFAULT_ADMIN_FIRST_NAME || 'Sakeb',
         lastName: process.env.DEFAULT_ADMIN_LAST_NAME || 'Ahmad',
         email: process.env.DEFAULT_ADMIN_EMAIL || 'admin@example.com',
-        mobileNumber: process.env.DEFAULT_ADMIN_MOBILE || '8294224325',
+        mobileNumber: process.env.DEFAULT_ADMIN_MOBILE || '8294112124',
         countryCode: '+91',
         password: process.env.DEFAULT_ADMIN_PASSWORD || 'S1234',
     },
