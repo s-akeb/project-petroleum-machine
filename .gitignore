@@ -1,3 +1,6 @@
 node_modules
-cloudinary.config
-.gitignore
+.env
+imageUpload
+data
+*.log
+.DS_Store

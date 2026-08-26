@@ -1,174 +1,173 @@
 const router = require('express').Router();
 const machineController = require('../controller/machineController');
-const multer = require('multer');
-var upload = multer({dest: 'imageUpload'});
 const auth = require('../middleware/auth');
+const upload = require('../middleware/upload');
+const v = require('../middleware/validate');
 
+/**
+ * @swagger
+ * /machine/addMachine:
+ *   post:
+ *     tags: [PETROLEUM MACHINE]
+ *     summary: Register a petroleum machine
+ *     security:
+ *       - token: []
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: header
+ *         name: token
+ *         required: true
+ *         type: string
+ *         description: Admin token
+ *       - in: formData
+ *         name: machineName
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: machineColor
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: machineType
+ *         type: string
+ *       - in: formData
+ *         name: machineCapacity
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: nozzel
+ *         required: true
+ *         type: integer
+ *         description: Number of nozzles (1-4)
+ *       - in: formData
+ *         name: machineFuelType
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: machinePaymentMode
+ *         type: string
+ *       - in: formData
+ *         name: image
+ *         type: file
+ *     responses:
+ *       200:
+ *         description: Machine added
+ */
+router.post(
+    '/addMachine',
+    auth.jwtTokenAdmin,
+    upload.array('image', 15),
+    v.addMachine,
+    machineController.addMachine
+);
 
-// For Machine Router
 /**
-* @swagger
-* /machine/addMachine:
-*   post:
-*     tags:
-*       - PETROLEUM MACHINE
-*     description: Creating Docs for Machine
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: token
-*         description: Admin Token is required.
-*         in: header
-*         required: true
-*       - name: machineName
-*         description: machineName is required.
-*         in: formData
-*         required: true
-*       - name: machineColor
-*         description: machineColor is required.
-*         in: formData
-*         required: true
-*       - name: machineType
-*         description: Digital or Not.
-*         in: formData
-*         required: false
-*       - name: machineCapacity
-*         description: machineCapacity is required.
-*         in: formData
-*         required: true
-*       - name: nozzel
-*         description: nozzel is required.
-*         in: formData
-*         required: true
-*       - name: machineFuelType
-*         description: machineFuelType is required.
-*         in: formData
-*         required: true
-*       - name: machinePaymentMode
-*         description: machinePaymentMode Online/Offline.
-*         in: formData
-*         required: false
-*       - name: image
-*         description: image is required.
-*         in: formData
-*         type: file
-*         required: true
-*     responses:
-*       200:
-*         description: Machine Added successfully!!
-*       404:
-*         description: DATA NOT FOUND.
-*       500:
-*         description: Internal server error.
-*/
-router.post('/addMachine', auth.jwtTokenAdmin,upload.array('image', 15), machineController.addMachine);
+ * @swagger
+ * /machine/updateMachine:
+ *   put:
+ *     tags: [PETROLEUM MACHINE]
+ *     summary: Update a machine by _id or machineName
+ *     security:
+ *       - token: []
+ *     parameters:
+ *       - in: header
+ *         name: token
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: _id
+ *         type: string
+ *       - in: formData
+ *         name: machineName
+ *         type: string
+ *       - in: formData
+ *         name: machineColor
+ *         type: string
+ *       - in: formData
+ *         name: machineType
+ *         type: string
+ *       - in: formData
+ *         name: machineCapacity
+ *         type: string
+ *       - in: formData
+ *         name: nozzel
+ *         type: integer
+ *       - in: formData
+ *         name: machineFuelType
+ *         type: string
+ *       - in: formData
+ *         name: machinePaymentMode
+ *         type: string
+ *       - in: formData
+ *         name: image
+ *         type: file
+ *     responses:
+ *       200:
+ *         description: Machine updated
+ */
+router.put('/updateMachine', auth.jwtTokenAdmin, upload.array('image', 15), v.updateMachine, machineController.updateMachine);
+
 /**
-* @swagger
-* /machine/updateMachine:
-*   put:
-*     tags:
-*       - PETROLEUM MACHINE
-*     description: Creating Docs for Machine
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: token
-*         description: Admin Token is required.
-*         in: header
-*         required: true
-*       - name: machineName
-*         description: machineName is required.
-*         in: formData
-*         required: true
-*       - name: machineColor
-*         in: formData
-*         required: false
-*       - name: machineCapacity
-*         in: formData
-*         required: false
-*       - name: nozzel
-*         description: nozzel is required.
-*         in: formData
-*         required: true
-*       - name: machineFueltype
-*         in: formData
-*         required: false
-*       - name: image
-*         in: formData
-*         type: file
-*         required: false
-*     responses:
-*       200:
-*         description: Machine Updated successfully.
-*       404:
-*         description: DATA NOT FOUND.
-*       500:
-*         description: Internal server error.
-*/
-router.put('/updateMachine', auth.jwtTokenAdmin,upload.array('image', 15),machineController.updateMachine);
+ * @swagger
+ * /machine/machineList:
+ *   get:
+ *     tags: [PETROLEUM MACHINE]
+ *     summary: Paginated machine list
+ *     security:
+ *       - token: []
+ *     parameters:
+ *       - in: header
+ *         name: token
+ *         required: true
+ *         type: string
+ *       - in: query
+ *         name: search
+ *         type: string
+ *       - in: query
+ *         name: nozzel
+ *         type: integer
+ *       - in: query
+ *         name: page
+ *         type: integer
+ *       - in: query
+ *         name: limit
+ *         type: integer
+ *       - in: query
+ *         name: fromDate
+ *         type: string
+ *       - in: query
+ *         name: toDate
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Machines found
+ */
+router.get('/machineList', auth.jwtTokenAdmin, v.listQuery, machineController.machineList);
+
 /**
-* @swagger
-* /machine/machineList:
-*  get:
-*     tags:
-*       - PETROLEUM MACHINE
-*     description: Creating Docs for Machine
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: token
-*         description: Admin Token is required.
-*         in: header
-*         required: true
-*       - name: machineName
-*         in: query
-*         required: false
-*       - name: nozzel
-*         in: query
-*         required: false
-*       - name: fromDate
-*         in: query
-*         required: false
-*       - name: toDate
-*         in: query
-*         required: false
-*       - name: fromDate & toDate
-*         in: query
-*         required: false
-*     responses:
-*        200:
-*          description: Machine List listed successfully!!
-*        404:
-*          description: DATA NOT FOUND.
-*        500:
-*          description: Internal server error. 
-*/
-router.get('/machineList', auth.jwtTokenAdmin,machineController.machineList);  
-/**
-* @swagger
-* /machine/deleteMachine:
-*  delete:
-*     tags:
-*       - PETROLEUM MACHINE
-*     description: Creating Docs for Machine
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: token
-*         description: Admin Token is required.
-*         in: header
-*         required: true
-*       - name: machineName
-*         description: machineName is required.
-*         in: formData
-*         required: true
-*     responses:
-*        200:
-*          description: Machine Deleted successfully!!
-*        404:
-*          description: DATA NOT FOUND.
-*        500:
-*          description: Internal server error. 
-*/
-router.delete('/deleteMachine/', auth.jwtTokenAdmin,machineController.deleteMachine);    
-module.exports = router
+ * @swagger
+ * /machine/deleteMachine:
+ *   delete:
+ *     tags: [PETROLEUM MACHINE]
+ *     summary: Soft-delete a machine by _id or machineName
+ *     security:
+ *       - token: []
+ *     parameters:
+ *       - in: header
+ *         name: token
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: _id
+ *         type: string
+ *       - in: formData
+ *         name: machineName
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Machine deleted
+ */
+router.delete('/deleteMachine', auth.jwtTokenAdmin, v.deleteMachine, machineController.deleteMachine);
+
+module.exports = router;

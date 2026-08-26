@@ -1,50 +1,51 @@
-const res = require('express/lib/response');
-const staticModel = require('../models/staticModel')
-module.exports = {
-  listStatic: async (req, res) => {
-    try {
-      let query = { status: 'ACTIVE' }
-      let staticData = await staticModel.find(query);
-      if (staticData.length != 0) {
-        res.send({ responseCode: 200, responseMessage: 'Static data found!', responseResult: staticData })
-      }
-      else {
-        res.send({ responseCode: 404, responseMessage: 'Static data not found!', responseResult: [] })
-      }
-    } catch (error) {
-      console.log('listStatic ==>', error);
-      res.send({ responseCode: 501, responseMessage: 'Something went wrong!', responseResult: error.message })
-    }
-  },
-  viewStatic: async (req, res) => {
-    try {
-      let query = { type: req.query.type, status: 'ACTIVE' }
-      //  let query = { type: req.params.type, status: 'ACTIVE' }
-      let staticData = await staticModel.find(query);
-      if (staticData.length != 0) {
-        res.send({ responseCode: 200, responseMessage: 'Static data found!', responseResult: staticData })
-      }
-      else {
-        res.send({ responseCode: 404, responseMessage: 'Static data not found!', responseResult: [] })
-      }
-    } catch (error) {
-      console.log('ViewStatic ==>', error);
-      res.send({ responseCode: 501, responseMessage: 'Something went wrong!', responseResult: error.message })
-    }
-  },
-  editStatic: async (req, res) => {
-    try {
-      let query = { _id: req.body._id, status: 'ACTIVE' }
-      let staticData = await staticModel.find(query);
-      if (!staticData) {
-        res.send({ responseCode: 404, responseMessage: 'Static data not found!', responseResult: [] })
-      } else {
-        let updateUser = await staticModel.findByIdAndUpdate({ _id: req.body._id }, { $set: req.body }, { new: true })
-        res.send({ responseCode: 200, responseMessage: 'Static data found!', responseResult: staticData })
-      }
-    } catch (error) {
-      res.send({ responseCode: 501, responseMessage: 'Something went wrong!', responseResult: error.message })
+const staticModel = require('../models/staticModel');
+const { ok, fail } = require('../helper/apiResponse');
 
-    }
-  },
-}
+module.exports = {
+    listStatic: async (req, res) => {
+        try {
+            const staticData = await staticModel.find({ status: 'ACTIVE' });
+            if (!staticData.length) return fail(res, 404, 'Static data not found.');
+            return ok(res, 'Static data found.', staticData);
+        } catch (error) {
+            return fail(res, 500, 'Something went wrong.', error.message);
+        }
+    },
+
+    viewStatic: async (req, res) => {
+        try {
+            const staticData = await staticModel.find({
+                type: req.query.type,
+                status: 'ACTIVE',
+            });
+            if (!staticData.length) return fail(res, 404, 'Static data not found.');
+            return ok(res, 'Static data found.', staticData);
+        } catch (error) {
+            return fail(res, 500, 'Something went wrong.', error.message);
+        }
+    },
+
+    editStatic: async (req, res) => {
+        try {
+            const staticData = await staticModel.findOne({
+                _id: req.body._id,
+                status: 'ACTIVE',
+            });
+            if (!staticData) return fail(res, 404, 'Static data not found.');
+
+            const allowed = ['type', 'title', 'description'];
+            const updates = {};
+            allowed.forEach((field) => {
+                if (req.body[field] !== undefined) updates[field] = req.body[field];
+            });
+            const updated = await staticModel.findByIdAndUpdate(
+                staticData._id,
+                { $set: updates },
+                { new: true }
+            );
+            return ok(res, 'Static data updated successfully.', updated);
+        } catch (error) {
+            return fail(res, 500, 'Something went wrong.', error.message);
+        }
+    },
+};

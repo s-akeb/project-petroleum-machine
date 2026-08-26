@@ -1,681 +1,417 @@
 const router = require('express').Router();
 const userController = require('../controller/userController');
-const adminController = require('../controller/adminController');  
 const auth = require('../middleware/auth');
-const multer = require('multer')
-const upload = multer({dest:'imageUpload'})
+const upload = require('../middleware/upload');
+const v = require('../middleware/validate');
 
-// For User
 /**
-* @swagger
-* /user/signUp:
-*   post:
-*     tags:
-*       - USER FIELD
-*     description: Creating Docs for USER
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: firstName
-*         description: firstName is required.
-*         in: formData
-*         required: true
-*       - name: lastName
-*         description: lastName is required.
-*         in: formData
-*         required: true
-*       - name: email
-*         description: email is required.
-*         in: formData
-*         required: true
-*       - name: password
-*         description: password is required.
-*         in: formData
-*         required: true
-*       - name: confirmPassword
-*         description: confirmPassword is required.
-*         in: formData
-*         required: true
-*       - name: countryCode
-*         description: countryCode is required.
-*         in: formData
-*         required: true
-*       - name: mobileNumber
-*         description: mobileNumber is required.
-*         in: formData
-*         required: true
-*       - name: image
-*         description: image is required.
-*         in: formData
-*         type: file
-*         required: true
-*       - name: address
-*         in: formData
-*         required: false
-*       - name: dateOfBirth
-*         in: formData
-*         required: false
-*       - name: street
-*         in: formData
-*         required: false
-*       - name: area
-*         in: formData
-*         required: false
-*       - name: city
-*         in: formData
-*         required: false
-*       - name: state
-*         in: formData
-*         required: false
-*       - name: country
-*         in: formData
-*         required: false
-*       - name: pin
-*         in: formData
-*         required: false
-*     responses:
-*       200:
-*         description: signUp successfully!!.
-*       404:
-*         description: DATA NOT FOUND.
-*       500:
-*         description: Internal server error.
-*/
-router.post("/signUp",upload.single('image'),userController.signUp);
-/** 
-* @swagger
-* /user/otpVerify:
-*   put:
-*     tags:
-*       - USER FIELD
-*     description: Creating Docs for USER
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: email
-*         description: email is required.
-*         in: formData
-*         required: true
-*       - name: otp
-*         description: otp is required.
-*         in: formData
-*         required: true
-*     responses:
-*       200:
-*         description: otp verify successfully!!
-*       404:
-*         description: DATA NOT FOUND.
-*       500:
-*         description: Internal server error.
-*/
-router.put("/otpVerify", userController.otpVerify);
-/**
-* @swagger
-* /user/resendOtp:
-*   put:
-*     tags:
-*       - USER FIELD
-*     description: Creating Docs for USER
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: email
-*         description: email is required.
-*         in: formData
-*         required: true
-*     responses:
-*       200:
-*         description: Resend otp successfully.
-*       404:
-*         description: DATA NOT FOUND.
-*       500:
-*         description: Internal server error.
-*/
-router.put("/resendOTP", userController.resendOtp);
-/**
-* @swagger
-* /user/forgotPassword:
-*   put:
-*     tags:
-*       - USER FIELD
-*     description: Creating Docs for USER
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: email
-*         description: email is required.
-*         in: formData
-*         required: true
-*     responses:
-*       200:
-*         description: otp send successfully.
-*       404:
-*         description: DATA NOT FOUND.
-*       500:
-*         description: Internal server error.
-*/
-router.put("/forgotPassword", userController.forgotPassword);
-/**
-* @swagger
-* /user/resetPassword:
-*   put:
-*     tags:
-*       - USER FIELD
-*     description: Creating Docs for USER
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: email
-*         description: email is required.
-*         in: formData
-*         required: true
-*       - name: otp
-*         description: otp is required.
-*         in: formData
-*         required: true
-*       - name: newPassword
-*         description: newPassword is required.
-*         in: formData
-*         required: true
-*       - name: confirmNewPassword
-*         description: confirmNewPassword is required.
-*         in: formData
-*         required: true
-*     responses:
-*       200:
-*         description: Reset password successfully !
-*       404:
-*         description: DATA NOT FOUND.
-*       500:
-*         description: Internal server error.
-*/
-router.put("/resetPassword", userController.resetPassword);
-/**
-* @swagger
-* /user/login:
-*   post:
-*     tags:
-*       - USER FIELD
-*     description: Creating Docs for USER
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: email
-*         description: email is required.
-*         in: formData
-*         required: true
-*       - name: password
-*         description: password is required.
-*         in: formData
-*         required: true
-*     responses:
-*       200:
-*         description: User Login successfully.
-*       404:
-*         description: DATA NOT FOUND.
-*       500:
-*         description: Internal server error.
-*/
-router.post("/login", userController.login);
-/**
-* @swagger
-* /user/viewProfile:
-*   get:
-*     tags:
-*       - USER FIELD
-*     description: Creating Docs for USER
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: token
-*         description: token is required.
-*         in: header
-*         required: true
-*     responses:
-*       200:
-*         description: Profile View Successfully !
-*       404:
-*         description: DATA NOT FOUND.
-*       500:
-*         description: Internal server error.
-*/
-router.get("/viewProfile/", auth.jwtTokenUser,userController.viewProfile);
-/**
-* @swagger
-* /user/editProfile:
-*   put:
-*     tags:
-*       - USER FIELD
-*     description: Creating Docs for USER
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: token
-*         description: token is required.
-*         in: header
-*         required: true
-*       - name: firstName
-*         in: formData
-*         required: false
-*       - name: lastName
-*         in: formData
-*         required: false
-*       - name: countryCode
-*         in: formData
-*         required: false
-*       - name: mobileNumber
-*         in: formData
-*         required: false
-*       - name: address
-*         in: formData
-*         required: false
-*       - name: dateOfBirth
-*         in: formData
-*         required: false
-*       - name: street
-*         in: formData
-*         required: false
-*       - name: area
-*         in: formData
-*         required: false
-*       - name: city
-*         in: formData
-*         required: false
-*       - name: state
-*         in: formData
-*         required: false
-*       - name: country
-*         in: formData
-*         required: false
-*       - name: pin
-*         in: formData
-*         required: false
-*     responses:
-*       200:
-*         description: Profile updated successfully !.
-*       404:
-*         description: DATA NOT FOUND.
-*       500:
-*         description: Internal server error.
-*/
-router.put("/editProfile", auth.jwtTokenUser,userController.editProfile);
-/**
-* @swagger
-* /user/getProfile:
-*   get:
-*     tags:
-*       - USER FIELD
-*     description: Creating Docs for USER
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: token
-*         description: token is required.
-*         in: header
-*         required: true
-*     responses:
-*       200:
-*         description: Get Profile successfully.
-*       404:
-*         description: DATA NOT FOUND.
-*       500:
-*         description: Internal server error.
-*/
-router.get("/getProfile/", auth.jwtTokenUser,userController.getProfile);
-/**
-* @swagger
-* /user/changePassword:
-*   put:
-*     tags:
-*       - USER FIELD
-*     description: Creating Docs for USER
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: token
-*         description: token is required.
-*         in: header
-*         required: true
-*       - name: password
-*         description: password is required.
-*         in: formData
-*         required: true
-*       - name: newPassword
-*         description: newPassword is required.
-*         in: formData
-*         required: true
-*       - name: confirmNewPassword
-*         description: confirmNewPassword is required.
-*         in: formData
-*         required: true
-*     responses:
-*       200:
-*         description: Password changed successfully.
-*       404:
-*         description: DATA NOT FOUND.
-*       500:
-*         description: Internal server error.
-*/
-router.put("/changePassword", auth.jwtTokenUser,userController.changePassword);
-/**
-* @swagger
-* /user/listUser:
-*  get:
-*     tags:
-*       - USER FIELD
-*     description: Creating Docs for USER
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: lastName
-*         in: query
-*         required: false
-*       - name: email
-*         in: query
-*         required: false
-*       - name: fromDate
-*         in: query
-*         required: false
-*       - name: toDate
-*         in: query
-*         required: false
-*       - name: fromDate & toDate
-*         in: query
-*         required: false
-*     responses:
-*        200:
-*          description: User data found successfully!!
-*        404:
-*          description: DATA NOT FOUND.
-*        500:
-*          description: Internal server error. 
-*/
-router.get('/listUser',userController.listUser);
-/**
-* @swagger
-* /user/userMachineList:
-*  get:
-*     tags:
-*       - USER FIELD
-*     description: Creating Docs for USER
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: machineName
-*         in: query
-*         required: false
-*       - name: nozzel
-*         in: query
-*         required: false
-*       - name: fromDate
-*         in: query
-*         required: false
-*       - name: toDate
-*         in: query
-*         required: false
-*       - name: fromDate & toDate
-*         in: query
-*         required: false
-*     responses:
-*        200:
-*          description: Machine List Found successfully!!
-*        404:
-*          description: DATA NOT FOUND.
-*        500:
-*          description: Internal server error. 
-*/
-router.get('/userMachineList', userController.userMachineList);
-/**
-* @swagger
-* /user/getIfsc:
-*   get:
-*     tags:
-*       - USER FIELD
-*     description: Creating Docs for USER
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: ifscCode
-*         description: ifscCode is required.
-*         in: query
-*         required: true
-*     responses:
-*       200:
-*         description: Resend otp successfully.
-*       404:
-*         description: DATA NOT FOUND.
-*       500:
-*         description: Internal server error.
-*/
-router.get("/getIfsc", userController.getIfsc);
+ * @swagger
+ * /user/signUp:
+ *   post:
+ *     tags: [USER]
+ *     summary: Register a new user
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: formData
+ *         name: firstName
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: lastName
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: email
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: password
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: confirmPassword
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: countryCode
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: mobileNumber
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: image
+ *         required: true
+ *         type: file
+ *       - in: formData
+ *         name: address
+ *         type: string
+ *       - in: formData
+ *         name: dateOfBirth
+ *         type: string
+ *       - in: formData
+ *         name: street
+ *         type: string
+ *       - in: formData
+ *         name: area
+ *         type: string
+ *       - in: formData
+ *         name: city
+ *         type: string
+ *       - in: formData
+ *         name: state
+ *         type: string
+ *       - in: formData
+ *         name: country
+ *         type: string
+ *       - in: formData
+ *         name: pin
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Signup successful
+ *       409:
+ *         description: Email or mobile already exists
+ */
+router.post(
+    '/signUp',
+    upload.single('image'),
+    v.signUp,
+    userController.signUp
+);
 
-// For Admin
 /**
-* @swagger
-* /admin/adminResendOtp:
-*   put:
-*     tags:
-*       - ADMIN FIELD
-*     description: Creating Docs for ADMIN
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: email
-*         description: email is required.
-*         in: formData
-*         required: true
-*     responses:
-*       200:
-*         description: ResendOtp successfully!!
-*       404:
-*         description: DATA NOT FOUND.
-*       500:
-*         description: Internal server error.
-*/
-router.put("/adminResendOtp", adminController.adminResendOtp);
+ * @swagger
+ * /user/otpVerify:
+ *   put:
+ *     tags: [USER]
+ *     summary: Verify signup OTP
+ *     parameters:
+ *       - in: formData
+ *         name: email
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: otp
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: User verified
+ */
+router.put('/otpVerify', v.otpVerify, userController.otpVerify);
+
 /**
-* @swagger
-* /admin/adminOtpVerify:
-*   put:
-*     tags:
-*       - ADMIN FIELD
-*     description: Creating Docs for ADMIN
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: email
-*         description: email is required.
-*         in: formData
-*         required: true
-*       - name: otp
-*         description: otp is required.
-*         in: formData
-*         required: true
-*     responses:
-*       200:
-*         description: OtpVerify successfully!!
-*       404:
-*         description: DATA NOT FOUND.
-*       500:
-*         description: Internal server error.
-*/
-router.put("/adminOtpVerify", adminController.adminOtpVerify);
+ * @swagger
+ * /user/resendOTP:
+ *   put:
+ *     tags: [USER]
+ *     summary: Resend OTP
+ *     parameters:
+ *       - in: formData
+ *         name: email
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: OTP sent
+ */
+router.put('/resendOTP', v.emailOnly, userController.resendOtp);
+
 /**
-* @swagger
-* /admin/adminForgotPassword:
-*   put:
-*     tags:
-*       - ADMIN FIELD
-*     description: Creating Docs for ADMIN
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: email
-*         description: email is required.
-*         in: formData
-*         required: true
-*     responses:
-*       200:
-*         description: Otp send successfully!!
-*       404:
-*         description: DATA NOT FOUND.
-*       500:
-*         description: Internal server error.
-*/
-router.put("/adminForgotPassword", adminController.adminForgotPassword);
+ * @swagger
+ * /user/forgotPassword:
+ *   put:
+ *     tags: [USER]
+ *     summary: Send forgot-password OTP
+ *     parameters:
+ *       - in: formData
+ *         name: email
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: OTP sent
+ */
+router.put('/forgotPassword', v.emailOnly, userController.forgotPassword);
+
 /**
-* @swagger
-* /admin/adminResetPassword:
-*  put:
-*     tags:
-*       - ADMIN FIELD
-*     description: Creating Docs for ADMIN
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: email
-*         description: email is required.
-*         in: formData
-*         required: true
-*       - name: otp
-*         description: otp is required.
-*         in: formData
-*         required: true
-*       - name: newPassword
-*         description: newPassword is required.
-*         in: formData
-*         required: true
-*       - name: confirmNewPassword
-*         description: confirmNewPassword is required.
-*         in: formData
-*         required: true
-*     responses:
-*        200:
-*          description: ResetPassword successfully.
-*        404:
-*          description: DATA NOT FOUND.
-*        500:
-*          description: Internal server error.  
-*/
-router.put("/adminResetPassword", adminController.adminResetPassword);
+ * @swagger
+ * /user/resetPassword:
+ *   put:
+ *     tags: [USER]
+ *     summary: Reset password using OTP
+ *     parameters:
+ *       - in: formData
+ *         name: email
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: otp
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: newPassword
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: confirmNewPassword
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Password reset
+ */
+router.put(
+    '/resetPassword',
+    v.resetPassword,
+    userController.resetPassword
+);
+
 /**
-* @swagger
-* /admin/adminlogin:
-*  post:
-*     tags:
-*       - ADMIN FIELD
-*     description: Creating Docs for ADMIN
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: email
-*         description: email is required.
-*         in: formData
-*         required: true
-*       - name: password
-*         description: password is required.
-*         in: formData
-*         required: true
-*     responses:
-*        200:
-*          description: Login successfully.
-*        404:
-*          description: DATA NOT FOUND.
-*        500:
-*          description: Internal server error. 
-*/
-router.post("/adminLogin", adminController.adminLogin);
+ * @swagger
+ * /user/login:
+ *   post:
+ *     tags: [USER]
+ *     summary: User login
+ *     parameters:
+ *       - in: formData
+ *         name: email
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: password
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ */
+router.post('/login', v.login, userController.login);
+
 /**
-* @swagger
-* /admin/adminViewProfile:
-*  get:
-*     tags:
-*       - ADMIN FIELD
-*     description: Creating Docs for ADMIN
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: token
-*         description: token is required.
-*         in: header
-*         required: true
-*     responses:
-*        200:
-*          description: Admin View Profile successfully.
-*        404:
-*          description: DATA NOT FOUND.
-*        500:
-*          description: Internal server error. 
-*/
-router.get("/adminViewProfile", auth.jwtTokenAdmin,adminController.adminViewProfile);
+ * @swagger
+ * /user/viewProfile:
+ *   get:
+ *     tags: [USER]
+ *     summary: View logged-in user profile
+ *     security:
+ *       - token: []
+ *     parameters:
+ *       - in: header
+ *         name: token
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Profile fetched
+ */
+router.get('/viewProfile', auth.jwtTokenUser, userController.viewProfile);
+
 /**
-* @swagger
-* /admin/adminEditProfile:
-*   put:
-*     tags:
-*       - ADMIN FIELD
-*     description: Creating Docs for ADMIN
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: token
-*         description: token is required.
-*         in: header
-*         required: true
-*       - name: email
-*         in: formData
-*         required: false
-*       - name: firstName
-*         in: formData
-*         required: false
-*       - name: lastName
-*         in: formData
-*         required: false
-*       - name: mobileNumber
-*         in: formData
-*         required: false
-*     responses:
-*       200:
-*         description: Edited Profile successfull!!
-*       404:
-*         description: DATA NOT FOUND.
-*       500:
-*         description: Internal server error.
-*/
-router.put("/adminEditProfile", auth.jwtTokenAdmin,adminController.adminEditProfile);
+ * @swagger
+ * /user/editProfile:
+ *   put:
+ *     tags: [USER]
+ *     summary: Edit logged-in user profile
+ *     security:
+ *       - token: []
+ *     parameters:
+ *       - in: header
+ *         name: token
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: firstName
+ *         type: string
+ *       - in: formData
+ *         name: lastName
+ *         type: string
+ *       - in: formData
+ *         name: countryCode
+ *         type: string
+ *       - in: formData
+ *         name: mobileNumber
+ *         type: string
+ *       - in: formData
+ *         name: address
+ *         type: string
+ *       - in: formData
+ *         name: dateOfBirth
+ *         type: string
+ *       - in: formData
+ *         name: street
+ *         type: string
+ *       - in: formData
+ *         name: area
+ *         type: string
+ *       - in: formData
+ *         name: city
+ *         type: string
+ *       - in: formData
+ *         name: state
+ *         type: string
+ *       - in: formData
+ *         name: country
+ *         type: string
+ *       - in: formData
+ *         name: pin
+ *         type: string
+ *       - in: formData
+ *         name: image
+ *         type: file
+ *     responses:
+ *       200:
+ *         description: Profile updated
+ */
+router.put('/editProfile', auth.jwtTokenUser, upload.single('image'), v.editProfile, userController.editProfile);
+
 /**
-* @swagger
-* /admin/adminChangePassword:
-*  put:
-*     tags:
-*       - ADMIN FIELD
-*     description: Creating Docs for ADMIN
-*     produces:
-*       - application/json
-*     parameters:
-*       - name: token
-*         description: token is required.
-*         in: header
-*         required: true
-*       - name: password
-*         description: password is required.
-*         in: formData
-*         required: true
-*       - name: newPassword
-*         description: newPassword is required.
-*         in: formData
-*         required: true
-*       - name: confirmNewPassword
-*         description: confirmNewPassword is required.
-*         in: formData
-*         required: true
-*     responses:
-*        200:
-*          description: Password Changed successfully!!
-*        404:
-*          description: DATA NOT FOUND.
-*        500:
-*          description: Internal server error. 
-*/
-router.put("/adminChangePassword", auth.jwtTokenAdmin,adminController.adminChangePassword);
-module.exports = router
+ * @swagger
+ * /user/getProfile:
+ *   get:
+ *     tags: [USER]
+ *     summary: Get logged-in user profile
+ *     security:
+ *       - token: []
+ *     parameters:
+ *       - in: header
+ *         name: token
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Profile fetched
+ */
+router.get('/getProfile', auth.jwtTokenUser, userController.getProfile);
+
+/**
+ * @swagger
+ * /user/changePassword:
+ *   put:
+ *     tags: [USER]
+ *     summary: Change password
+ *     security:
+ *       - token: []
+ *     parameters:
+ *       - in: header
+ *         name: token
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: password
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: newPassword
+ *         required: true
+ *         type: string
+ *       - in: formData
+ *         name: confirmNewPassword
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Password changed
+ */
+router.put(
+    '/changePassword',
+    auth.jwtTokenUser,
+    v.changePassword,
+    userController.changePassword
+);
+
+/**
+ * @swagger
+ * /user/listUser:
+ *   get:
+ *     tags: [USER]
+ *     summary: Paginated user list (admin)
+ *     security:
+ *       - token: []
+ *     parameters:
+ *       - in: header
+ *         name: token
+ *         required: true
+ *         type: string
+ *         description: Admin token
+ *       - in: query
+ *         name: search
+ *         type: string
+ *       - in: query
+ *         name: page
+ *         type: integer
+ *       - in: query
+ *         name: limit
+ *         type: integer
+ *       - in: query
+ *         name: fromDate
+ *         type: string
+ *         description: ISO date
+ *       - in: query
+ *         name: toDate
+ *         type: string
+ *         description: ISO date
+ *     responses:
+ *       200:
+ *         description: Users found
+ */
+router.get('/listUser', auth.jwtTokenAdmin, v.listQuery, userController.listUser);
+
+/**
+ * @swagger
+ * /user/userMachineList:
+ *   get:
+ *     tags: [USER]
+ *     summary: Paginated machine catalog for users
+ *     security:
+ *       - token: []
+ *     parameters:
+ *       - in: header
+ *         name: token
+ *         required: true
+ *         type: string
+ *       - in: query
+ *         name: search
+ *         type: string
+ *       - in: query
+ *         name: nozzel
+ *         type: integer
+ *       - in: query
+ *         name: page
+ *         type: integer
+ *       - in: query
+ *         name: limit
+ *         type: integer
+ *       - in: query
+ *         name: fromDate
+ *         type: string
+ *       - in: query
+ *         name: toDate
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Machines found
+ */
+router.get('/userMachineList', auth.jwtTokenUser, v.listQuery, userController.userMachineList);
+
+/**
+ * @swagger
+ * /user/getIfsc:
+ *   get:
+ *     tags: [USER]
+ *     summary: Lookup Indian IFSC bank details
+ *     parameters:
+ *       - in: query
+ *         name: ifscCode
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: IFSC details found
+ */
+router.get('/getIfsc', v.getIfsc, userController.getIfsc);
+
+module.exports = router;

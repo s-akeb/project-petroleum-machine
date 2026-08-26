@@ -1,139 +1,157 @@
+const qrCode = require('qrcode');
 const machineModel = require('../models/machineModel');
 const userModel = require('../models/userModel');
 const commonFunction = require('../helper/commonFunction');
-const bcrypt = require('bcryptjs');
-const qrCode = require('qrcode');
-const { db } = require('../models/machineModel');
-const cloudinary = require('cloudinary').v2
+const { buildListQuery } = require('../helper/queryHelper');
+const { ok, fail } = require('../helper/apiResponse');
+
+const findAdmin = (adminId) =>
+    userModel.findOne({ _id: adminId, status: { $ne: 'DELETE' }, userType: 'ADMIN' });
+
+const findMachine = (req) => {
+    const data = { ...req.query, ...req.body };
+    const filter = { status: { $ne: 'DELETE' } };
+    if (data._id) filter._id = data._id;
+    else if (data.machineName) filter.machineName = data.machineName;
+    else return null;
+    return machineModel.findOne(filter);
+};
+
+const generateQr = async (machine) => {
+    const qr = await qrCode.toDataURL(JSON.stringify({
+        machineName: machine.machineName,
+        serialNumber: machine.serialNumber,
+        machineFuelType: machine.machineFuelType,
+        nozzel: machine.nozzel,
+    }));
+    return commonFunction.uploadImage(qr);
+};
+
 module.exports = {
     addMachine: async (req, res) => {
         try {
-            let query = { $and: [{ _id: req.adminId }, { status: { $ne: "DELETE" } }, { userType: 'ADMIN' }], };
-            let adminResult = await userModel.findOne(query);
-            if (adminResult) {
-                let query = { $and: [{ machineName: req.body.machineName }, { status: { $ne: "DELETE" } }, { userType: 'ADMIN' }], };
-                let machineResult = await machineModel.findOne(query);
-                if (!machineResult) {
-                    req.body.machineName = req.body.machineName
-                    req.body.serialNo = commonFunction.generatedSN(await machineModel.count())
-                    let nozzel = req.body.nozzel
-                    if (nozzel > 4) {
-                        return res.send({ reponseCode: 400, responseMessage: 'Nozzel limit exceed!!', result: [] })
-                    }
-                    let data = req.body
-                    if (data) {
-                        let image = [];
-                        for (let index = 0; index < req.files.length; index++) {
-                            let files = await commonFunction.uploadImage(req.files[index].path);
-                            image.push(files)
-                        }
-                        req.body.image = image
-                        let stringData = JSON.stringify(data)
-                        let qr = await qrCode.toDataURL(stringData)
-                        let qrImage = await commonFunction.uploadImage(qr)
-                        let qrImg
-                        req.body.qrImg = qrImage
-                        req.body.url = qrImg
-                        let addMachineQrCode = await new machineModel(req.body).save()
-                        if (addMachineQrCode) {
-                            return res.send({ reponseCode: 200, responseMessage: 'Machine registered and your qrCode', responseResult: addMachineQrCode, image })
-                        }
-                    }
-                }
-                else {
-                    return res.send({ reponseCode: 409, responseMessage: 'Machine name already exists', result: [] })
+            const admin = await findAdmin(req.adminId);
+            if (!admin) return fail(res, 401, 'Unauthorized admin.');
+
+            const existing = await machineModel.findOne({
+                machineName: req.body.machineName,
+                status: { $ne: 'DELETE' },
+            });
+            if (existing) return fail(res, 409, 'Machine name already exists.');
+
+            const nozzel = Number(req.body.nozzel);
+            if (Number.isNaN(nozzel) || nozzel > 4 || nozzel < 1) {
+                return fail(res, 400, 'Nozzle must be a number between 1 and 4.');
+            }
+
+            const images = [];
+            if (req.files && req.files.length) {
+                for (const file of req.files) {
+                    images.push(await commonFunction.uploadImage(file.path));
                 }
             }
+
+            const serialNumber = commonFunction.generatedSN(await machineModel.countDocuments());
+            const payload = {
+                machineName: req.body.machineName,
+                machineColor: req.body.machineColor,
+                machineType: req.body.machineType,
+                machineCapacity: req.body.machineCapacity,
+                machinePaymentMode: req.body.machinePaymentMode,
+                machineFuelType: req.body.machineFuelType,
+                nozzel,
+                image: images,
+                serialNumber,
+            };
+            payload.qrImg = await generateQr(payload);
+            const machine = await machineModel.create(payload);
+            return ok(res, 'Machine registered successfully.', machine);
         } catch (error) {
-            return res.send({ reponseCode: 501, responseMessage: 'Something went worng', result: error.message })
+            return fail(res, 500, 'Something went wrong.', error.message);
         }
     },
+
     updateMachine: async (req, res) => {
         try {
-            let query = { $and: [{ _id: req.adminId }, { status: { $ne: "DELETE" } }, { userType: 'ADMIN' }], };
-            let admin = await userModel.findOne(query);
-            if (admin) {
-                let query = { $and: [{ machineName: req.body.machineName }, { status: { $ne: "DELETE" } }, { userType: 'ADMIN' }], };
-                let machine = await machineModel.findOne(query);
-                if (!machine) {
-                    return res.send({ reponseCode: 404, responseMessage: 'Machine not found .', responseResult: [] });
-                } else {
-                    let nozzel = req.body.nozzel
-                    if (nozzel > 4) {
-                        return res.send({ reponseCode: 400, responseMessage: 'Nozzel limit exceed', result: [] })
-                    }
-                    else {
-                        let machineData = await machineModel.findByIdAndUpdate({ _id: machine._id }, { $set: req.body }, { new: true })
-                        if (machineData) {
-                            let stringData = JSON.stringify(machineData)
-                            let qr = await qrCode.toDataURL(stringData)
-                            let qrImage = await commonFunction.uploadImage(qr)
-                            req.body.qrImg = qrImage
-                            let machineQr = await machineModel.findByIdAndUpdate({ _id: machine._id }, { $set: { qrImg: req.body.qrImg } }, { new: true })
-                            if (machineQr) {
-                                return res.send({ reponseCode: 200, responseMessage: 'Succesfully updated', responseResult: machineQr });
-                            }
-                        }
-                    }
+            const admin = await findAdmin(req.adminId);
+            if (!admin) return fail(res, 401, 'Unauthorized admin.');
+
+            const machine = await findMachine(req);
+            if (!machine) return fail(res, 404, 'Machine not found. Pass _id or machineName.');
+
+            if (req.body.nozzel !== undefined) {
+                const nozzel = Number(req.body.nozzel);
+                if (Number.isNaN(nozzel) || nozzel > 4 || nozzel < 1) {
+                    return fail(res, 400, 'Nozzle must be a number between 1 and 4.');
+                }
+                req.body.nozzel = nozzel;
+            }
+
+            const allowed = [
+                'machineName',
+                'machineColor',
+                'machineType',
+                'machineCapacity',
+                'machinePaymentMode',
+                'machineFuelType',
+                'nozzel',
+            ];
+            const updates = {};
+            allowed.forEach((field) => {
+                if (req.body[field] !== undefined) updates[field] = req.body[field];
+            });
+            if (req.files && req.files.length) {
+                updates.image = [];
+                for (const file of req.files) {
+                    updates.image.push(await commonFunction.uploadImage(file.path));
                 }
             }
+
+            const updated = await machineModel.findByIdAndUpdate(machine._id, { $set: updates }, { new: true });
+            updated.qrImg = await generateQr(updated);
+            await updated.save();
+            return ok(res, 'Machine updated successfully.', updated);
         } catch (error) {
-            return res.send({ responseCode: 501, responseMessage: 'Something went wrong', responseResult: error.message });
+            return fail(res, 500, 'Something went wrong.', error.message);
         }
     },
+
     machineList: async (req, res) => {
         try {
-            let query = { status: { $ne: "DELETE" }, userType: "ADMIN" }
-            if (req.query.search) {
-                query.$or = [
-                    { machineName: { $regex: req.query.search }, $option: 'i' },
-                    { nozzel: { $regex: req.query.search, $option: 'i' } },
-                ]
+            const { query, options } = buildListQuery(
+                { status: { $ne: 'DELETE' } },
+                req,
+                ['machineName']
+            );
+            if (req.query.nozzel) {
+                query.nozzel = Number(req.query.nozzel);
             }
-            let options = {
-                page: parseInt(req.query.page) || 1,
-                limit: parseInt(req.body.limit) || 10,
-                sort: { createdAt: -1 },
-            };
-            if (req.query.fromDate) {
-                query.createdAt = { $gte: req.body.fromDate }
+            const machineData = await machineModel.paginate(query, options);
+            if (!machineData.docs.length) {
+                return fail(res, 404, 'Machine data not found.');
             }
-            if (req.query.toDate) {
-                query.createdAt = { $lte: req.body.toDate }
-            }
-            if (req.query.fromDate && req.query.toDate) {
-                query.$and = [{ createdAt: { $gte: req.body.fromDate } }, { createdAt: { $lte: req.body.toDate } }]
-            }
-            let machineData = await machineModel.paginate(query, options);
-            if (machineData.docs.length == 0) {
-                res.send({ responseCode: 404, responseMessage: 'User data not found!', responseResult: [] })
-            } else {
-                res.send({ responseCode: 200, responseMessage: 'User data found!', responseResult: machineData })
-            }
+            return ok(res, 'Machine list found successfully.', machineData);
         } catch (error) {
-            res.send({ responseCode: 501, responseMessage: 'Something went wrong!', responseResult: error.message })
+            return fail(res, 500, 'Something went wrong.', error.message);
         }
     },
+
     deleteMachine: async (req, res) => {
         try {
-            let query1 = { $and: [{ _id: req.adminId }, { status: { $ne: "DELETE" } }, { userType: 'ADMIN' }], };
-            let admin = await userModel.findOne(query1);
-            if (admin) {
-                let query = { $and: [{ machineName: req.body.machineName }, { status: { $ne: "DELETE" } }, { userType: 'ADMIN' }], };
-                let machine = await machineModel.findOne(query);
-                if (!machine) {
-                    return res.send({ reponseCode: 404, responseMessage: 'Machine not found .', responseResult: [] });
-                } else {
-                    let deleteMachine = await machineModel.deleteOne({ _id: machine._id })
-                    if (deleteMachine) {
-                        return res.send({ reponseCode: 200, responseMessage: 'Machine deleted.', responseResult: machine });
+            const admin = await findAdmin(req.adminId);
+            if (!admin) return fail(res, 401, 'Unauthorized admin.');
 
-                    }
-                }
-            }
+            const machine = await findMachine(req);
+            if (!machine) return fail(res, 404, 'Machine not found. Pass _id or machineName.');
+
+            const deleted = await machineModel.findByIdAndUpdate(
+                machine._id,
+                { status: 'DELETE', active: false },
+                { new: true }
+            );
+            return ok(res, 'Machine deleted successfully.', deleted);
         } catch (error) {
-            return res.send({ reponseCode: 501, responseMessage: 'Something went wrong.', responseResult: error.message });
-
+            return fail(res, 500, 'Something went wrong.', error.message);
         }
     },
 };

@@ -1,58 +1,63 @@
-const userModel = require('../models/userModel');
 const jwt = require('jsonwebtoken');
+const userModel = require('../models/userModel');
+const config = require('../config');
+const { fail } = require('../helper/apiResponse');
+
+const getToken = (req) => {
+    if (req.headers.token) return req.headers.token;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        return authHeader.slice(7);
+    }
+    return null;
+};
+
 module.exports = {
-    // For User
     jwtTokenUser: async (req, res, next) => {
         try {
-            let decode = await jwt.verify(req.headers.token, 'secret');
-            if (decode) {
-                let userData = await userModel.findOne({ _id: decode.userId, userType: 'USER' });
-                if (userData) {
-                    if (userData.status == 'BLOCK') {
-                        return res.send({ reponseCode: 402, responseMessage: 'Your account has been blocked by admin.', responseResult: [] },);
-                    }
-                    else if (userData.status == 'DELETE') {
-                        return res.send({ reponseCode: 402, responseMessage: 'Your account has been deleted.', responseResult: [] },);
-                    }
-                    else {
-                        req.userId = userData._id;
-                        next()
-                    }
-                }
+            const token = getToken(req);
+            if (!token) {
+                return fail(res, 401, 'Token is required.');
             }
+            const decode = jwt.verify(token, config.jwtSecret);
+            const userData = await userModel.findOne({ _id: decode.userId, userType: 'USER' });
+            if (!userData) {
+                return fail(res, 401, 'Unauthorized user.');
+            }
+            if (userData.status === 'BLOCK') {
+                return fail(res, 403, 'Your account has been blocked by admin.');
+            }
+            if (userData.status === 'DELETE') {
+                return fail(res, 403, 'Your account has been deleted.');
+            }
+            req.userId = userData._id;
+            return next();
         } catch (error) {
-            return res.send({
-                responseCode: 501,
-                responseMessage: "Something went wrong!",
-                responseResult: error.message,
-            });
+            return fail(res, 401, 'Invalid or expired token.');
         }
     },
-    // For Admin    
+
     jwtTokenAdmin: async (req, res, next) => {
         try {
-            let decode = await jwt.verify(req.headers.token, 'secret');
-            if (decode) {
-                let adminData = await userModel.findOne({ _id: decode.adminId, userType: 'ADMIN' });
-                if (adminData) {
-                    if (adminData.status == 'BLOCK') {
-                        return res.send({ reponseCode: 402, responseMessage: 'Your account has been blocked by admin.', responseResult: [] },);
-                    }
-                    else if (adminData.status == 'DELETE') {
-                        return res.send({ reponseCode: 402, responseMessage: 'Your account has been deleted.', responseResult: [] },);
-                    }
-                    else {
-                        req.adminId = adminData._id;
-                        next()
-                    }
-                }
+            const token = getToken(req);
+            if (!token) {
+                return fail(res, 401, 'Token is required.');
             }
+            const decode = jwt.verify(token, config.jwtSecret);
+            const adminData = await userModel.findOne({ _id: decode.adminId, userType: 'ADMIN' });
+            if (!adminData) {
+                return fail(res, 401, 'Unauthorized admin.');
+            }
+            if (adminData.status === 'BLOCK') {
+                return fail(res, 403, 'Your account has been blocked by admin.');
+            }
+            if (adminData.status === 'DELETE') {
+                return fail(res, 403, 'Your account has been deleted.');
+            }
+            req.adminId = adminData._id;
+            return next();
         } catch (error) {
-            return res.send({
-                responseCode: 501,
-                responseMessage: "Something went wrong!",
-                responseResult: error.message,
-            });
+            return fail(res, 401, 'Invalid or expired token.');
         }
     },
 };
